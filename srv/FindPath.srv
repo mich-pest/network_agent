@@ -1,0 +1,17 @@
+###### The FindPath ROS service
+
+### Request
+
+int32 vehicle_id # Id of the vehicle
+geographic_msgs/GeoPoint client_location # Actual payload for the request
+geographic_msgs/GeoPoint target_point
+---
+
+### Response
+
+geographic_msgs/GeoPoint[] route # Sequence of nodes coordinates
+int64[] route_ids # Sequence of nodes ids
+float32 time_s
+float32 consumption
+std_msgs/String metadata
+bool success

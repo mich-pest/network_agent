@@ -1,0 +1,17 @@
+
+###### The UpdateEdge ROS service
+
+### Request
+
+int32 vehicle_id # Id of the vehicle
+uint64 from_node
+uint64 to_node
+std_msgs/String attr_name
+float32 value
+
+---
+
+### Response
+
+std_msgs/String metadata
+bool success

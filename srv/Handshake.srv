@@ -1,0 +1,12 @@
+
+###### The Handshake ROS service
+
+### Request
+
+int32 vehicle_id # Id of the vehicle
+---
+
+### Response
+
+std_msgs/String metadata
+bool success

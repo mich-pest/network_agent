@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<launch>
+
+    <node name="ls_ros_network_agent" pkg="ros_network_agent_only" type="ls_ros_network_agent.py" output="screen" args="1">
+    </node>
+
+    <node name="nats_connector" pkg="nats_ros_connector" type="nats_connector.py" output="screen">
+        <param name="host" value="nats://sml-wan.asuscomm.com:4222" />
+        <rosparam>
+            subscribers:
+                - replan_needed1
+            service_proxies:
+                - name: find_path_service, 
+                  type: ros_network_agent_only/FindPath
+                - name: update_edge_service, 
+                  type: ros_network_agent_only/UpdateEdge
+                - name: handshake_service, 
+                  type: ros_network_agent_only/Handshake
+        </rosparam>
+    </node>
+</launch>

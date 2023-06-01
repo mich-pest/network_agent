@@ -17,16 +17,16 @@ def main():
         current_pos = [59.333974, 18.057215]
         #target_point = [random.uniform(params.south, params.north), random.uniform(params.west, params.east)]
         target_point = [59.336466, 18.062395]
-        route, route_ids, time_s, consumption = v.ask_for_path(current_pos, target_point)
-        v.print_route_stats(time_s, consumption, route=route)
-
-        while not rospy.is_shutdown():
-            if v.replan_needed:
-                route, route_ids, time_s, consumption = v.ask_for_path(current_pos, target_point)
-                v.print_route_stats(time_s, consumption, route=route)
-            else:
-                #v.set_location(move_along(route, route_idx))
-                rospy.sleep(.3)
+        #route, route_ids, time_s, consumption = v.ask_for_path(current_pos, target_point)
+        #v.print_route_stats(time_s, consumption, route=route)
+        #
+        #while not rospy.is_shutdown():
+        #    if v.replan_needed:
+        #        route, route_ids, time_s, consumption = v.ask_for_path(current_pos, target_point)
+        #        v.print_route_stats(time_s, consumption, route=route)
+        #    else:
+        #        #v.set_location(move_along(route, route_idx))
+        #        rospy.sleep(.3)
 
 
         #for i in range(6):
@@ -39,8 +39,8 @@ def main():
             #    ttime = random.uniform(40.0, 70.0)
             ### Edge update testing
 
-        #edge = (678831937, 1211118909)
-        #v._send_update_edge_request(from_node=edge[0], to_node=edge[1], attr_name="n_vehicles", value=10)
+        edge = (7078838874, 7078838867)
+        v._send_update_edge_request(from_node=edge[0], to_node=edge[1], attr_name="n_vehicles", value=10)
 
 if __name__ == '__main__':
     main()

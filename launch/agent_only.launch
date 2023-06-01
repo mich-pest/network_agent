@@ -10,11 +10,11 @@
             subscribers:
                 - replan_needed1
             service_proxies:
-                - name: find_path_service, 
+                - name: find_path_service 
                   type: ros_network_agent_only/FindPath
-                - name: update_edge_service, 
+                - name: update_edge_service 
                   type: ros_network_agent_only/UpdateEdge
-                - name: handshake_service, 
+                - name: handshake_service
                   type: ros_network_agent_only/Handshake
         </rosparam>
     </node>

@@ -1,0 +1,44 @@
+<?xml version="1.0"?>
+<launch>
+
+    <!-- Launch file arguments -->
+    <arg name="map"             default="sml"/>
+    <arg name="is_sim"          default="true"/>
+    <arg name="use_rviz"        default="true"/>
+    <arg name="remote_rviz"     default="false"/>
+    <arg name="obstacle_map"    default="obstacles"/>
+    <arg name="initial_pose_x"  default="-2.0"/>
+    <arg name="initial_pose_y"  default="-3.0"/>
+    <arg name="initial_pose_a"  default="0.0" /> <!-- wrt to map-->
+
+    <!-- Start map server -->
+    <node name="map_server" pkg="map_server" type="map_server" args="$(find svea_core)/maps/$(arg map).yaml" output="screen"/>
+
+    <!-- If is_sim equal to false, then include all these tags-->
+    <group unless="$(arg is_sim)">
+
+        <!-- Start low-level interface -->
+        <node name="serial_node" pkg="rosserial_python" type="serial_node.py">
+            <param name="port" value="/dev/ttyACM0"/>
+            <param name="baud" value="250000"/>
+        </node>
+
+        <!-- Start localization -->
+        <include file="$(find svea_sensors)/launch/localize.launch">
+            <arg name="initial_pose_x" value="$(arg initial_pose_x)" />
+            <arg name="initial_pose_y" value="$(arg initial_pose_y)" />
+            <arg name="initial_pose_a" value="$(arg initial_pose_a)" />
+        </include>
+    </group>
+
+    <!-- Start RViz -->
+    <node if="$(eval use_rviz and not remote_rviz)" name="rviz" pkg="rviz" type="rviz" args="-d $(find ros_network_agent_only)/rviz/demo_cfg.rviz"/>
+    <!-- Start pure_pursuit -->
+    <node name="pure_pursuit" pkg="ros_network_agent_only" type="pure_pursuit.py" output="screen">
+        <param name="use_rviz" value="$(arg use_rviz)"/>
+        <param name="is_sim" value="$(arg is_sim)"/>
+        <rosparam>
+            state: [3.5, -2.0, 3.14] # initial state (x, y, yaw)
+        </rosparam>
+    </node>
+</launch>

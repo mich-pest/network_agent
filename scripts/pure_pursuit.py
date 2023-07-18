@@ -6,7 +6,8 @@ import rospy
 from rospy import Publisher, Rate
 from geometry_msgs.msg import PoseWithCovarianceStamped
 from tf.transformations import quaternion_from_euler
-
+import math
+import time
 import osmnx as ox
 from ros_network_pkg import params
 from ros_network_pkg.coordinate_converter import CoordinateConverter
@@ -17,7 +18,7 @@ from svea.interfaces import LocalizationInterface
 from svea.controllers.pure_pursuit import PurePursuitController
 from svea.svea_managers.path_following_sveas import SVEAPurePursuit
 from svea.data import TrajDataHandler, RVIZPathHandler
-from ros_network_agent_only.network_agent import ROSNetworkAgent
+from ros_network_pkg.network_agent import ROSNetworkAgent
 
 from ros_network_pkg.path_smoother import PathSmoother
 from ros_network_pkg.path_interface import PathInterface
@@ -62,13 +63,15 @@ class pure_pursuit:
     TRAJ_LEN = 10
     TARGET_VELOCITY = 1.0
     RATE = 1e9
+    TARGET_POINT = [3.0, 2.0]
 
     def __init__(self):
 
         ## Initialize network agent
         self._v = ROSNetworkAgent(vehicle_id=1)
-        self.G = ox.io.load_graphml(params.graph_load_path) # Static copy of graph used to plan
-        self.cc = cc = CoordinateConverter(
+        # Static copy of graph used to convert lat,lng -> x,y
+        self.G = ox.io.load_graphml(params.graph_load_path) 
+        self.cc = CoordinateConverter(
                 local_map_frame_lat=params.map_origin_lat, 
                 local_map_frame_lng=params.map_origin_lng, 
                 local_map_frame_angle_offset=params.map_origin_angle)
@@ -78,20 +81,18 @@ class pure_pursuit:
         self.USE_RVIZ = load_param('~use_rviz', False)
         self.STATE = load_param('~state', [0, 0, 0, 0])
         self.POINTS = []
+        self.route_ids = []
 
         ## Set initial values for node
 
         # initial state
         state = VehicleState(*self.STATE)
         publish_initialpose(state)
-       
-        print(cc.from_xy_to_latlng(state.x, state.y))
-        print(cc.from_xy_to_latlng(3.0, 2.0))
-        _, route_ids, _, _ = self._v.ask_for_path(cc.from_xy_to_latlng(state.x, state.y), 
-                                                  cc.from_xy_to_latlng(3.0, 2.0))
-        
-         # self.POINTS = [[-2.3, -7.1], [10.5, 11.7], [5.7, 15.0], [-7.0, -4.0]]
-        for n in route_ids:
+
+        # Define a path to destination
+        _, self.route_ids, _, _ = self._v.ask_for_path(self.cc.from_xy_to_latlng(state.x, state.y), 
+                                                  self.cc.from_xy_to_latlng(*self.TARGET_POINT))
+        for n in self.route_ids:
             x = round(float(self.G.nodes[n]['map_x']), 3)
             y = round(float(self.G.nodes[n]['map_y']), 3)
             self.POINTS.append([x,y])
@@ -125,6 +126,7 @@ class pure_pursuit:
                                     data_handler=RVIZPathHandler if self.USE_RVIZ else TrajDataHandler)
 
         self.svea.controller.target_velocity = self.TARGET_VELOCITY
+        self.initial_time_curr_edge = time.time()
         self.svea.start(wait=True)
 
         # everything ready to go -> unpause simulator
@@ -159,7 +161,33 @@ class pure_pursuit:
             self.pi1.create_pose_path()
             self.pi1.publish_rviz_path()
 
-            # TODO: Periodic check on upcoming node
+            # Check distance to upcoming node
+            dist_to_next_node = math.dist([self.svea.state.x, self.svea.state.y], self.POINTS[self.curr])
+            if dist_to_next_node < 0.2:
+
+                # If svea is on last waypoint
+                if self.curr == len(self.POINTS) - 1:
+                    print("On target!")
+                    rospy.sleep(100) # termination here
+                
+                # Publish data regarding the visited edge
+                if self.curr - 1 >= 0:
+                    value = round(time.time() - self.initial_time_curr_edge, 3) 
+                    edge = [self.route_ids[self.curr - 1], self.route_ids[self.curr]]
+                    self._v._send_update_edge_request(from_node=edge[0], to_node=edge[1], attr_name="travel_time", value=value)
+                    print(f"Updating {edge[0]}, {edge[1]} with value {value}")
+
+                # Ask for new path (replanning triggered)
+                if self._v.replan_needed:
+                    self.POINTS = []
+                    _, self.route_ids, _, _ = self._v.ask_for_path(self.cc.from_xy_to_latlng(self.svea.state.x, self.svea.state.y), self.cc.from_xy_to_latlng(*self.TARGET_POINT))
+                    for n in self.route_ids:
+                        x = round(float(self.G.nodes[n]['map_x']), 3)
+                        y = round(float(self.G.nodes[n]['map_y']), 3)
+                        self.POINTS.append([x,y])
+                    self.publish_global_path(smooth=False)
+                    self.curr = 0
+                    self.goal = self.POINTS[self.curr]
 
             self.spin()
 
@@ -186,6 +214,7 @@ class pure_pursuit:
         self.curr %= len(self.POINTS)
         self.goal = self.POINTS[self.curr]
         self.svea.controller.is_finished = False
+        self.initial_time_curr_edge = time.time()
 
     def compute_traj(self, state):
         xs = np.linspace(state.x, self.goal[0], self.TRAJ_LEN)

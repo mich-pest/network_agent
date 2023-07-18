@@ -9,8 +9,8 @@ from tf.transformations import quaternion_from_euler
 import math
 import time
 import osmnx as ox
-from ros_network_pkg import params
-from ros_network_pkg.coordinate_converter import CoordinateConverter
+from ros_network_agent_only import params
+from ros_network_agent_only.coordinate_converter import CoordinateConverter
 from svea.models.bicycle import SimpleBicycleModel
 from svea.states import VehicleState
 from svea.simulators.sim_SVEA import SimSVEA
@@ -18,10 +18,10 @@ from svea.interfaces import LocalizationInterface
 from svea.controllers.pure_pursuit import PurePursuitController
 from svea.svea_managers.path_following_sveas import SVEAPurePursuit
 from svea.data import TrajDataHandler, RVIZPathHandler
-from ros_network_pkg.network_agent import ROSNetworkAgent
+from ros_network_agent_only.network_agent import ROSNetworkAgent
 
-from ros_network_pkg.path_smoother import PathSmoother
-from ros_network_pkg.path_interface import PathInterface
+from ros_network_agent_only.path_smoother import PathSmoother
+from ros_network_agent_only.path_interface import PathInterface
 
 
 def load_param(name, value=None):
